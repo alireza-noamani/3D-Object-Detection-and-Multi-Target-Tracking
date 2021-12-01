@@ -127,7 +127,7 @@ def bev_from_pcl(lidar_pcl, configs):
     lidar_pcl_cpy[:, 1] = np.int_(np.floor(lidar_pcl_cpy[:, 1] / bev_discret)) - (configs.bev_width + 1) / 2
 
     # step 4 : visualize point-cloud using the function show_pcl from a previous task
-    show_pcl(lidar_pcl_cpy)
+    # show_pcl(lidar_pcl_cpy)
     #######
     ####### ID_S2_EX1 END #######     
     
@@ -156,11 +156,11 @@ def bev_from_pcl(lidar_pcl, configs):
     intensity_map[np.int_(lidar_pcl_top[:, 0]), np.int_(lidar_pcl_top[:, 1])] = lidar_pcl_top[:, 3] / (np.amax(lidar_pcl_top[:, 3]) - np.amin(lidar_pcl_top[:, 3]))
 
     ## step 5 : temporarily visualize the intensity map using OpenCV to make sure that vehicles separate well from the background
-    img_intesity = intensity_map * 255
-    img_intesity = img_intesity.astype(np.uint8)
-    cv2.imshow('Intensity Image', img_intesity)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # img_intesity = intensity_map * 255
+    # img_intesity = img_intesity.astype(np.uint8)
+    # cv2.imshow('Intensity Image', img_intesity)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     #######
     ####### ID_S2_EX2 END ####### 
@@ -177,15 +177,15 @@ def bev_from_pcl(lidar_pcl, configs):
     ## step 2 : assign the height value of each unique entry in lidar_top_pcl to the height map 
     ##          make sure that each entry is normalized on the difference between the upper and lower height defined in the config file
     ##          use the lidar_pcl_top data structure from the previous task to access the pixels of the height_map
-    lidar_pcl_top[:, 2] = lidar_pcl_top[:, 2] - configs.lim_z[0]
     height_map[np.int_(lidar_pcl_top[:, 0]), np.int_(lidar_pcl_top[:, 1])] = lidar_pcl_top[:, 2] / np.float(np.abs(configs.lim_z[1] - configs.lim_z[0]))
 
     ## step 3 : temporarily visualize the intensity map using OpenCV to make sure that vehicles separate well from the background
-    img_heigth = height_map * 255
-    img_heigth = img_heigth.astype(np.uint8)
-    cv2.imshow('Height Image', img_heigth)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # img_heigth = height_map * 255
+    # img_heigth = img_heigth.astype(np.uint8)
+    # cv2.imshow('Height Image', img_heigth)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
     #######
     ####### ID_S2_EX3 END #######       
 
