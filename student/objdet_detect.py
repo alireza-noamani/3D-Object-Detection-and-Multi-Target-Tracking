@@ -84,7 +84,8 @@ def load_configs_model(model_name='darknet', configs=None):
         configs.num_z = 1
         configs.num_dim = 3
         configs.num_direction = 2  # sin, cos
-
+        configs.min_iou = 0.5
+        
         configs.heads = {
             "hm_cen": configs.num_classes,
             "cen_offset": configs.num_center_offset,
@@ -210,7 +211,7 @@ def detect_objects(input_bev_maps, model, configs):
             detections = decode(outputs['hm_cen'], outputs['cen_offset'], outputs['direction'], outputs['z_coor'],
                                 outputs['dim'], K=configs.K)
             detections = detections.cpu().numpy().astype(np.float32) # np array: (1, max_objects=50, 10) each object has 10 elements: [scores, y, x, z, dim:h, w, l, direction: sin(yaw), cos(yaw), class]
-            detections = post_processing(detections, configs) # detections: list contains each element is a list for a detected object: [class (only vehicle: 1), y, x, z, h, w, l, yaw]
+            detections = post_processing(detections, configs) # detections: list contains each element is a list for a detected object: [class (only vehicle: 1), x, y, z, h, w, l, yaw]
             detections_filtered = []
             for item in detections[0]:
                 for obj in detections[0][item]:
@@ -236,13 +237,13 @@ def detect_objects(input_bev_maps, model, configs):
     ## step 2 : loop over all detections
         for object in detections:
     ## step 3 : perform the conversion using the limits for x, y and z set in the configs structure
-            class_type, y, x, z, h, w, l, yaw = object
+            class_type, bev_x, bev_y, z, h, bev_w, bev_l, yaw = object
             yaw = -yaw
-            x = x  * (configs.lim_x[1] - configs.lim_x[0]) / configs.bev_height + configs.lim_x[0]
-            y = y  * (configs.lim_y[1] - configs.lim_y[0]) / configs.bev_width + configs.lim_y[0]
+            x = bev_y  * (configs.lim_x[1] - configs.lim_x[0]) / configs.bev_height + configs.lim_x[0]
+            y = bev_x  * (configs.lim_y[1] - configs.lim_y[0]) / configs.bev_width + configs.lim_y[0]
             z = z + configs.lim_z[0]
-            w = w  * (configs.lim_y[1] - configs.lim_y[0]) / configs.bev_width
-            l = l  * (configs.lim_x[1] - configs.lim_x[0]) / configs.bev_height
+            w = bev_w  * (configs.lim_y[1] - configs.lim_y[0]) / configs.bev_width
+            l = bev_l  * (configs.lim_x[1] - configs.lim_x[0]) / configs.bev_height
     ## step 4 : append the current object to the 'objects' array
             objects.append([class_type, x, y, z, h, w, l, yaw])
     #######

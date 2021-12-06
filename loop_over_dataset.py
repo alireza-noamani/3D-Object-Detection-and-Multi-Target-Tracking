@@ -17,6 +17,7 @@
 ## general package imports
 import os
 import sys
+from typing import Sequence
 import numpy as np
 import math
 import cv2
@@ -50,18 +51,20 @@ import misc.params as params
 ## Set parameters and perform initializations
 
 ## Select Waymo Open Dataset file and frame numbers
-data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord' # Sequence 1
-# data_filename = 'training_segment-10072231702153043603_5725_000_5745_000_with_camera_labels.tfrecord' # Sequence 2
-# data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord' # Sequence 3
-show_only_frames = [50, 50] # show only frames in interval for debugging
+sequence = 3
+if sequence == 1:
+    data_filename = 'training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord'    # Sequence 1
+elif sequence == 2:
+    data_filename = 'training_segment-10072231702153043603_5725_000_5745_000_with_camera_labels.tfrecord'   # Sequence 2
+elif sequence == 3:
+    data_filename = 'training_segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord'   # Sequence 3
+
+show_only_frames = [0, 0] # show only frames in interval for debugging
 
 ## Prepare Waymo Open Dataset file for loading
 Model = 'darknet' #' darknet' or 'fpn_resnet'
 data_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dataset', data_filename) # adjustable path in case this script is called from another working directory
-if Model == 'darknet':
-    results_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'results\\darknet model\\results_sequence_1_darknet\\')
-elif Model == 'fpn_resnet':
-    results_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'results\\fpn_resnet_model\\results_sequence_1_resnet\\')
+results_fullpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'results\\'+ Model + '_model\\results_sequence_' + str(sequence) + '_' + Model + '\\')
 
 datafile = WaymoDataFileReader(data_fullpath)
 datafile_iter = iter(datafile)  # initialize dataset iterator
@@ -86,7 +89,7 @@ np.random.seed(10) # make random values predictable
 ## Selective execution and visualization
 exec_detection = ['bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'] # options are 'bev_from_pcl', 'detect_objects', 'validate_object_labels', 'measure_detection_performance'; options not in the list will be loaded from file
 exec_tracking = [] # options are 'perform_tracking'
-exec_visualization = ['show_detection_performance'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
+exec_visualization = ['show_range_image', 'show_bev', 'show_pcl', 'show_objects_in_bev_labels_in_camera', 'show_detection_performance'] # options are 'show_range_image', 'show_bev', 'show_pcl', 'show_labels_in_image', 'show_objects_and_labels_in_bev', 'show_objects_in_bev_labels_in_camera', 'show_tracks', 'show_detection_performance', 'make_tracking_movie'
 exec_list = make_exec_list(exec_detection, exec_tracking, exec_visualization)
 vis_pause_time = 0 # set pause time between frames in ms (0 = stop between frames until key is pressed)
 
@@ -189,7 +192,7 @@ while True:
             cv2.waitKey(vis_pause_time)
 
         if 'show_pcl' in exec_list:
-            pcl.show_pcl(lidar_pcl)
+            pcl.show_pcl(lidar_pcl, configs_det)
 
         if 'show_bev' in exec_list:
             tools.show_bev(lidar_bev, configs_det)  

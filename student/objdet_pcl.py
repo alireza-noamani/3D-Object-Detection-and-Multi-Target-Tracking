@@ -33,11 +33,15 @@ import open3d as o3d
 
 
 # visualize lidar point-cloud
-def show_pcl(pcl):
+def show_pcl(pcl, configs):
 
     ####### ID_S1_EX2 START #######     
     #######
-    print("student task ID_S1_EX2")
+    # remove lidar points outside detection area and with too low reflectivity
+    mask = np.where((pcl[:, 0] >= configs.lim_x[0]) & (pcl[:, 0] <= configs.lim_x[1]) &
+                    (pcl[:, 1] >= configs.lim_y[0]) & (pcl[:, 1] <= configs.lim_y[1]) &
+                    (pcl[:, 2] >= configs.lim_z[0]) & (pcl[:, 2] <= configs.lim_z[1]))
+    pcl = pcl[mask]
 
     # step 1 : initialize open3d with key callback and create window
     window = o3d.visualization.VisualizerWithKeyCallback()
@@ -84,10 +88,20 @@ def show_range_image(frame, lidar_name):
     # step 4 : map the range channel onto an 8-bit scale and make sure that the full range of values is appropriately considered
     ri_range =  ri_range * 255 / (np.amax(ri_range) - np.amin(ri_range))
     img_range = ri_range.astype(np.uint8)
-
+    
+    # focus on +/- 90° around the image center
+    deg90 = int(img_range.shape[1] / 8)
+    ri_center = int(img_range.shape[1]/2)
+    img_range = img_range[:,ri_center-deg90:ri_center+deg90]
+    
     # step 5 : map the intensity channel onto an 8-bit scale and normalize with the difference between the 1- and 99-percentile to mitigate the influence of outliers
     ri_intensity = np.amax(ri_intensity) / 2 *ri_intensity * 255 / (np.amax(ri_intensity) - np.amin(ri_intensity))
     img_intensity = ri_intensity.astype(np.uint8)
+
+    # focus on +/- 90° around the image center
+    deg90 = int(img_intensity.shape[1] / 8)
+    ri_center = int(img_intensity.shape[1]/2)
+    img_intensity = img_intensity[:,ri_center-deg90:ri_center+deg90]
 
     # step 6 : stack the range and intensity image vertically using np.vstack and convert the result to an unsigned 8-bit integer
     
@@ -215,5 +229,3 @@ def bev_from_pcl(lidar_pcl, configs):
     bev_maps = torch.from_numpy(bev_maps)  # create tensor from birds-eye view
     input_bev_maps = bev_maps.to(configs.device, non_blocking=True).float()
     return input_bev_maps
-
-
