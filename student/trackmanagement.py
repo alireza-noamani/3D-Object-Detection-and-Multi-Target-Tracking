@@ -35,21 +35,34 @@ class Track:
         # - initialize track state and track score with appropriate values
         ############
 
-        self.x = np.matrix([[49.53980697],
-                        [ 3.41006279],
-                        [ 0.91790581],
-                        [ 0.        ],
-                        [ 0.        ],
-                        [ 0.        ]])
-        self.P = np.matrix([[9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 6.4e-03, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+01]])
-        self.state = 'confirmed'
-        self.score = 0
-        
+        # self.x = np.matrix([[49.53980697],
+        #                 [ 3.41006279],
+        #                 [ 0.91790581],
+        #                 [ 0.        ],
+        #                 [ 0.        ],
+        #                 [ 0.        ]])
+        # self.P = np.matrix([[9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
+        #                 [0.0e+00, 9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
+        #                 [0.0e+00, 0.0e+00, 6.4e-03, 0.0e+00, 0.0e+00, 0.0e+00],
+        #                 [0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00, 0.0e+00],
+        #                 [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00],
+        #                 [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+01]])
+        # self.state = 'confirmed'
+        # self.score = 0
+
+        # save initial state from measurement
+        pos_sens = np.ones((4, 1))  # homogeneous coordinates
+        pos_sens[0:3] = meas.z[0:3]
+        pos_veh = meas.sensor.sens_to_veh * pos_sens
+        self.x = np.vstack((pos_veh[0:3], np.zeros((3, 1))))
+
+        self.P = np.zeros((params.dim_state, params.dim_state))
+        self.P[0:3, 0:3]  = M_rot * meas.R * M_rot.transpose()
+        self.P[3:6, 3:6] = np.diag([params.sigma_p44 ** 2, params.sigma_p55 ** 2, params.sigma_p66 ** 2])
+
+        self.state = 'initialized'
+        self.score = 1. / params.window
+
         ############
         # END student code
         ############ 
@@ -99,17 +112,26 @@ class Trackmanagement:
         # - delete tracks if the score is too low or P is too big (check params.py for parameters that might be helpful, but
         # feel free to define your own parameters)
         ############
-        
-        # decrease score for unassigned tracks
+        delete_tracks = []
         for i in unassigned_tracks:
             track = self.track_list[i]
             # check visibility    
-            if meas_list: # if not empty
+            if meas_list:  # if not empty
                 if meas_list[0].sensor.in_fov(track.x):
                     # your code goes here
-                    pass 
+                    track.score -= 1 / params.window
+                    track.score = max(track.score, 0)
 
-        # delete old tracks   
+                    # delete old tracks
+                    if track.state == 'confirmed':
+                        if track.score < params.delete_threshold or track.P[0, 0] > params.max_P or track.P[1, 1] > params.max_P:
+                            delete_tracks.append(track)
+                    else:
+                        if track.score < params.tentative_delete_threshold or track.P[0, 0] > params.max_P or track.P[1, 1] > params.max_P:
+                            delete_tracks.append(track)
+
+        for track in delete_tracks:
+            self.delete_track(track)
 
         ############
         # END student code
@@ -140,7 +162,12 @@ class Trackmanagement:
         # - set track state to 'tentative' or 'confirmed'
         ############
 
-        pass
+        track.score = min(track.score + 1 / params.window, 1)
+        if track.state == 'initialized':
+            track.state = 'tentative'
+        elif track.state == 'tentative' and track.score > params.confirmed_threshold:
+            track.state = 'confirmed'
+        
         
         ############
         # END student code
